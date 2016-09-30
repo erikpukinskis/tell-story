@@ -1,17 +1,49 @@
 var library = require("nrtv-library")(require)
 
+library.define(
+  "story-template",
+  ["web-element"],
+  function(element) {
+    var story = element.template(
+      ".story",
+      element.style({
+        "max-width": "250px",
+        "clear": "right",
+        "box-shadow": "-2px 0px 10px #ddd",
+        "padding": "10px",
+        "color": "#662",
+        "border-left": "6px solid #d00",
+        "margin-top": "1em",
+        "box-sizing": "border-box",
+      }),
+      function(text) {
+        this.addChild(text)
+      }
+    )
+
+    return story
+  }
+)
+
 library.using(
-  ["nrtv-server", "browser-bridge", "web-element", "make-it-editable", "bridge-module", "add-html", "make-request", "function-call"],
-  function(server, BrowserBridge, element, makeItEditable, bridgeModule, addHtml, makeRequest, functionCall) {
+  ["nrtv-server", "browser-bridge", "web-element", "make-it-editable", "bridge-module", "add-html", "make-request", "function-call", "../universe/module-universe", "./tell-story", "story-template"],
+  function(server, BrowserBridge, element, makeItEditable, bridgeModule, addHtml, makeRequest, functionCall, Universe, tellStory, story) {
 
     server.start(9919)
 
-    console.log("BOOOM")
+    var universe = new Universe(
+      "stories",
+      ["./tell-story"],
+      function(tellStory) {
+        // begin
+      }
+    )
 
     server.addRoute("post", "/stories", function(request, response) {
-
-      console.log("save story", request.body.text)
-      response.send({success: false})
+      var text = request.body.text
+      universe.do("tellStory", text)
+      tellStory(text)
+      response.send({success: true})
     })
 
     server.addRoute("get", "/", function(request, response) {
@@ -33,15 +65,28 @@ library.using(
       })
 
       var tellFresh = bridge.defineFunction(
-        [stories, makeRequest.defineOn(bridge)],
-        function(stories, makeRequest, event) {
+        [
+          stories,
+          makeRequest.defineOn(bridge),
+          bridgeModule(library, "story-template", bridge),
+          bridgeModule(library, "add-html", bridge),
+        ],
+        function(stories, makeRequest, story, addHtml, event) {
           event.stopPropagation()
+
+          var text = stories.fresh
+
           makeRequest({
             method: "post",
             path: "/stories",
-            data: {text: stories.fresh}
+            data: {text: text}
           }, function(response) {
-            console.log(response)
+            var baked = story(text)
+            stories.fresh = "your story here"
+            document.querySelector(".save-button").style.display = "none"
+            stories.saveButton = false
+            document.querySelector(".fresh-story span").innerText = "tap me and tell a story"
+            addHtml.inside(".stories", baked.html())
           })
 
         }
@@ -64,16 +109,21 @@ library.using(
 
       makeItEditable.prepareBridge(bridge, {useLibrary: true})
 
-      var story = element.template(
-        ".story",
+      var freshStory = element.template(
+        ".fresh-story",
+        story,
         element.style({
-          "display": "inline-block",
-          "box-shadow": "1px 1px 10px #ccc",
-          "padding": "10px",
-          "color": "#662",
+          "border-left": "none"
         }),
         function(text) {
-          var span = element("span", text)
+          var span = element(
+            "span",
+            element.style({
+              "font-size": "1.2em"
+            }),
+            text
+          )
+
           this.addChild(span)
 
           makeItEditable(this, getValue, setValue, {updateElement: span})
@@ -101,14 +151,17 @@ library.using(
         }
       )
 
-      bridge.addToHead(element.stylesheet(story).html())
+      bridge.addToHead(element.stylesheet(story, freshStory).html())
 
 
-      var template = story(
+      var template = freshStory(
         "tap me and tell a story"
       )
 
-      bridge.sendPage(template)(request, response)
+
+      var container = element(".stories", tellStory.all().map(story))
+
+      bridge.sendPage([template, container])(request, response)
     })
   }
 )
