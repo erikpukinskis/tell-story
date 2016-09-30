@@ -26,18 +26,31 @@ library.define(
 )
 
 library.using(
-  ["nrtv-server", "browser-bridge", "web-element", "make-it-editable", "bridge-module", "add-html", "make-request", "function-call", "../universe/module-universe", "./tell-story", "story-template"],
+  ["nrtv-server", "browser-bridge", "web-element", "make-it-editable", "bridge-module", "add-html", "make-request", "function-call", "../module-universe/module-universe", "./tell-story", "story-template"],
   function(server, BrowserBridge, element, makeItEditable, bridgeModule, addHtml, makeRequest, functionCall, Universe, tellStory, story) {
 
     server.start(9919)
 
     var universe = new Universe(
       "stories",
+      library,
       ["./tell-story"],
       function(tellStory) {
         // begin
       }
     )
+
+    if (process.env.AWS_ACCESS_KEY_ID) {
+      universe.persistToS3({
+        key: process.env.AWS_ACCESS_KEY_ID,
+        secret: process.env.AWS_SECRET_ACCESS_KEY,
+        bucket: "ezjs"
+      })
+
+      universe.loadFromS3(function(){
+        console.log("OK! "+tellStory.all().length+" stories told")
+      })
+    }
 
     server.addRoute("post", "/stories", function(request, response) {
       var text = request.body.text

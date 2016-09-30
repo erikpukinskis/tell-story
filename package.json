@@ -1,5 +1,5 @@
 {
-  "name": "todo",
+  "name": "tell-story",
   "version": "0.0.0",
   "description": "",
   "dependencies": {
@@ -12,8 +12,11 @@
     "add-html": "*",
     "make-request": "*"
   },
+  "scripts": {
+    "start": "env $(cat CREDENTIALS | xargs) node server"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/erikpukinskis/.git"
+    "url": "https://github.com/erikpukinskis/tell-story.git"
   }
 }
