@@ -1,7 +1,7 @@
 {
   "name": "tell-story",
   "version": "0.0.0",
-  "description": "",
+  "description": "Tell stories so they might come true",
   "dependencies": {
     "nrtv-library": "*",
     "web-element": "*",
