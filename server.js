@@ -26,7 +26,7 @@ library.define(
 )
 
 library.using(
-  ["nrtv-server", "browser-bridge", "web-element", "make-it-editable", "bridge-module", "add-html", "make-request", "function-call", "../module-universe/module-universe", "./tell-story", "story-template"],
+  ["nrtv-server", "browser-bridge", "web-element", "make-it-editable", "bridge-module", "add-html", "make-request", "function-call", "module-universe", "./tell-story", "story-template"],
   function(server, BrowserBridge, element, makeItEditable, bridgeModule, addHtml, makeRequest, functionCall, Universe, tellStory, story) {
 
     server.start(9919)

@@ -10,7 +10,8 @@
     "make-it-editable": "*",
     "bridge-module": "*",
     "add-html": "*",
-    "make-request": "*"
+    "make-request": "*",
+    "module-universe": "*"
   },
   "scripts": {
     "start": "env $(cat CREDENTIALS | xargs) node server"
