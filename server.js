@@ -8,8 +8,9 @@ library.define(
       ".story",
       element.style({
         "max-width": "250px",
+        "font-size": "1.4em",
         "clear": "right",
-        "box-shadow": "-2px 0px 10px #ddd",
+        "box-shadow": "-2px 0px 10px #d3d3e0",
         "padding": "10px",
         "color": "#662",
         "border-left": "6px solid #d00",
@@ -98,7 +99,7 @@ library.using(
             stories.fresh = "your story here"
             document.querySelector(".save-button").style.display = "none"
             stories.saveButton = false
-            document.querySelector(".fresh-story span").innerText = "tap me and tell a story"
+            document.querySelector(".fresh-story span").innerText = newStoryButton
             addHtml.inside(".stories", baked.html())
           })
 
@@ -132,7 +133,7 @@ library.using(
           var span = element(
             "span",
             element.style({
-              "font-size": "1.2em"
+              "font-size": "0.8em"
             }),
             text
           )
@@ -164,15 +165,30 @@ library.using(
         }
       )
 
-      bridge.addToHead(element.stylesheet(story, freshStory).html())
-
-
-      var template = freshStory(
-        "tap me and tell a story"
+      var bodyStyle = element.style(
+        "body",
+        {"background": "#fdfffc"}
       )
 
+      var message = element.template.container(
+        ".message",
+        element.style({
+          "margin": "1em 0",
+          "font-family": "sans-serif"
+        })
+      )
 
-      var container = element(".stories", tellStory.all().map(story))
+      bridge.addToHead(element.stylesheet(story, freshStory, bodyStyle, message).html())
+
+
+      var newStoryButton = "Tell a new story"
+      var template = freshStory(
+        newStoryButton
+      )
+
+      var note = message("Stories should be in the present tense, and start with the doer, and then a verb: \"Bobby smiles\"")
+
+      var container = element(".stories", [note, tellStory.all().map(story)])
 
       bridge.sendPage([template, container])(request, response)
     })
