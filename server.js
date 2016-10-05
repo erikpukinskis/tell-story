@@ -25,7 +25,7 @@ library.define(
         this.addChild(span)
 
         if (happenings) {
-          var history = element("Happened on "+happenings.join(", "))
+          var history = element("(happened "+(happenings.length == 1 ? "once)" : happenings.length+" times)"))
           this.addChild(history)
           this.classes.push("story-happened")
         }
