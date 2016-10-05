@@ -47,9 +47,9 @@ module.exports = library.export(
       aliases[storyToId(text)] = id
     }
             
-    function defineOnBridge(bridge) {
+    function defineStoriesOn(bridge) {
 
-      var tellInBrowser = bridge.defineSingleton("tellStory",
+      var stories = bridge.defineSingleton("stories",
         [makeRequest.defineOn(bridge)],
         function(makeRequest) {
           var storiesById = {}
@@ -98,25 +98,27 @@ module.exports = library.export(
             return text.toLowerCase().replace(/[^a-z0-9]+/g, "-")
           }
 
-          function tellStory(text) {
+          function tell(text) {
             var id = storyToId(text)
             storiesById[id] = text
             return id
           }
 
-          tellStory.load = load
-          tellStory.get = get
-          tellStory.set = set
+          var stories = {}
+          stories.load = load
+          stories.get = get
+          stories.set = set
+          stories.tell = tell
 
-          return tellStory
+          return stories
         }
       )
 
       bridge.asap(
-        tellInBrowser.methodCall("load").withArgs(tellStory.allById())
+        stories.methodCall("load").withArgs(tellStory.allById())
       )
 
-      return tellInBrowser
+      return stories
     }
 
     function storyToId(text) {
@@ -168,7 +170,7 @@ module.exports = library.export(
     }
 
     tellStory.addApiRoutes = addApiRoutes
-    tellStory.defineOn = defineOnBridge
+    tellStory.defineStoriesOn = defineStoriesOn
     tellStory.edit = edit
     tellStory.all = all
     tellStory.allById = function() {

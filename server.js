@@ -18,7 +18,7 @@ library.define(
         "margin-top": "1em",
         "box-sizing": "border-box",
       }),
-      function(tellStory, text, id, happenings) {
+      function(stories, text, id, happenings) {
 
         var span = element("span", text)
 
@@ -32,8 +32,8 @@ library.define(
 
         makeItEditable(
           this,
-          tellStory.methodCall("get").withArgs(id),
-          tellStory.methodCall("set").withArgs(id),
+          stories.methodCall("get").withArgs(id),
+          stories.methodCall("set").withArgs(id),
           {updateElement: span}
         )
 
@@ -73,13 +73,12 @@ library.using(
       var tellFresh = bridge.defineFunction(
         [
           fresh,
-          tellStory.defineOn(bridge),
           makeRequest.defineOn(bridge),
           bridgeModule(library, "story-template", bridge),
           bridgeModule(library, "add-html", bridge),
           functionCall.defineOn(bridge),
         ],
-        function(fresh, tellStory, makeRequest, storyTemplate, addHtml, functionCall, event) {
+        function(fresh, makeRequest, storyTemplate, addHtml, functionCall, storiesSource, event) {
           event.stopPropagation()
 
           makeRequest({
@@ -87,8 +86,8 @@ library.using(
             path: "/stories",
             data: {text: fresh.text}
           }, function(response) {
-            var id = tellStory(fresh.text)
-            var baked = storyTemplate(functionCall(tellStory.name), fresh.text, id)
+            var id = stories.tell(fresh.text)
+            var baked = storyTemplate(functionCall(storiesSource), fresh.text, id)
             fresh.text = "your story here"
             document.querySelector(".save-button").style.display = "none"
             fresh.saveButton = false
@@ -97,7 +96,7 @@ library.using(
           })
 
         }
-      )
+      ).withArgs(tellStory.defineStoriesOn(bridge).callable())
 
       var getValue = bridge.defineFunction([fresh], function(fresh) {
           return fresh.text
@@ -183,7 +182,7 @@ library.using(
 
       tellStory.all(function(text, id, happenings) {
 
-        var story = storyTemplate(tellStory.defineOn(bridge), text, id, happenings)
+        var story = storyTemplate(tellStory.defineStoriesOn(bridge), text, id, happenings)
 
         container.addChild(story)
       })
