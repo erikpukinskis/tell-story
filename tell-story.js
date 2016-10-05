@@ -6,6 +6,8 @@ module.exports = library.export(
   function(makeRequest) {
     var storiesById = {}
     var count = 0
+    var aliases = {}
+    var happenings = {}
 
     function tellStory(text) {
       var id = storyToId(text)
@@ -24,8 +26,19 @@ module.exports = library.export(
 
     tellStory.all = function(callback) {
       for(var id in storiesById) {
-        callback(storiesById[id], id)
+        callback(storiesById[id], id, happenings[id])
       }
+    }
+
+    tellStory.itHappened = function(text, date) {
+      var id = storyToId(text)
+      if (aliases[id]) {
+        id = aliases[id]
+      }
+      if (!happenings[id]) {
+        happenings[id] = []
+      }
+      happenings[id].push(date)
     }
 
     tellStory.count = function() {
@@ -38,6 +51,7 @@ module.exports = library.export(
 
     tellStory.edit = function(id, text) {
       storiesById[id] = text
+      aliases[storyToId(text)] = id
     }
     
     tellStory.defineOn = function(bridge) {

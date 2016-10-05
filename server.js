@@ -18,17 +18,31 @@ library.define(
         "margin-top": "1em",
         "box-sizing": "border-box",
       }),
-      function(tellStory, text, id) {
+      function(tellStory, text, id, happenings) {
 
-        this.addChild(text)
+        var span = element("span", text)
+
+        this.addChild(span)
+
+        if (happenings) {
+          var history = element("Happened on "+happenings.join(", "))
+          this.addChild(history)
+          this.classes.push("story-happened")
+        }
 
         makeItEditable(
           this,
           tellStory.methodCall("get").withArgs(id),
-          tellStory.methodCall("set").withArgs(id)
+          tellStory.methodCall("set").withArgs(id),
+          {updateElement: span}
         )
 
       }
+    )
+
+    story.happened = element.style(
+      ".story-happened",
+      {"border-color": "lightgreen"}
     )
 
     return story
@@ -67,6 +81,11 @@ library.using(
       var text = request.body.text
       universe.do("tellStory", text)
       tellStory(text)
+
+      var when = new Date().toString()
+      universe.do("tellStory.itHappened", "Someone tells a story", when)
+      tellStory.itHappened("Someone tells a story", when)
+
       response.send({success: true})
     })
 
@@ -192,7 +211,7 @@ library.using(
         })
       )
 
-      bridge.addToHead(element.stylesheet(storyTemplate, freshStory, bodyStyle, message).html())
+      bridge.addToHead(element.stylesheet(storyTemplate, storyTemplate.happened,freshStory, bodyStyle, message).html())
 
 
       var newStoryButton = "Tell a new story"
@@ -204,9 +223,9 @@ library.using(
 
       var container = element(".stories", note)
 
-      tellStory.all(function(text, id) {
+      tellStory.all(function(text, id, happenings) {
 
-        var story = storyTemplate(tellStory.defineOn(bridge), text, id)
+        var story = storyTemplate(tellStory.defineOn(bridge), text, id, happenings)
 
         container.addChild(story)
       })
