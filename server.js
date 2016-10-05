@@ -2,8 +2,9 @@ var library = require("nrtv-library")(require)
 
 library.define(
   "story-template",
-  ["web-element"],
-  function(element) {
+  ["web-element", "make-it-editable"],
+  function(element, makeItEditable) {
+
     var story = element.template(
       ".story",
       element.style({
@@ -17,8 +18,16 @@ library.define(
         "margin-top": "1em",
         "box-sizing": "border-box",
       }),
-      function(text) {
+      function(tellStory, text, id) {
+
         this.addChild(text)
+
+        makeItEditable(
+          this,
+          tellStory.methodCall("get").withArgs(id),
+          tellStory.methodCall("set").withArgs(id)
+        )
+
       }
     )
 
@@ -26,9 +35,10 @@ library.define(
   }
 )
 
+
 library.using(
   ["nrtv-server", "browser-bridge", "web-element", "make-it-editable", "bridge-module", "add-html", "make-request", "function-call", "module-universe", "./tell-story", "story-template"],
-  function(server, BrowserBridge, element, makeItEditable, bridgeModule, addHtml, makeRequest, functionCall, Universe, tellStory, story) {
+  function(server, BrowserBridge, element, makeItEditable, bridgeModule, addHtml, makeRequest, functionCall, Universe, tellStory, storyTemplate) {
 
     server.start(9919)
 
@@ -49,7 +59,7 @@ library.using(
       })
 
       universe.loadFromS3(function(){
-        console.log("OK! "+tellStory.all().length+" stories told")
+        console.log("OK! "+tellStory.count()+" stories told")
       })
     }
 
@@ -60,63 +70,67 @@ library.using(
       response.send({success: true})
     })
 
+    server.addRoute("post", "/stories/:id", function(request, response) {
+      var text = request.body.text
+      var id = request.params.id
+
+      universe.do("tellStory.edit", id, text)
+      tellStory.edit(id, text)
+      response.send({success: true})
+    })
+
     server.addRoute("get", "/", function(request, response) {
       var bridge = new BrowserBridge()
 
-      var stories = bridge.defineSingleton("stories",
-        [makeRequest.defineOn(bridge)],
-        function(makeRequest) {
-          var storiesById = {}
-          var unnamedStory
+      var fresh = bridge.defineSingleton(
+        "freshStory",
+        function() {
+          var fresh = {text: "your story here"}
 
-          function saveStory(text, id) {
-          }
-
-          return {
-            fresh: "your story here",
-            save: saveStory
-          }
-      })
+          return fresh
+        }
+      )
 
       var tellFresh = bridge.defineFunction(
         [
-          stories,
+          fresh,
+          tellStory.defineOn(bridge),
           makeRequest.defineOn(bridge),
           bridgeModule(library, "story-template", bridge),
           bridgeModule(library, "add-html", bridge),
+          functionCall.defineOn(bridge),
         ],
-        function(stories, makeRequest, story, addHtml, event) {
+        function(fresh, tellStory, makeRequest, storyTemplate, addHtml, functionCall, event) {
           event.stopPropagation()
-
-          var text = stories.fresh
 
           makeRequest({
             method: "post",
             path: "/stories",
-            data: {text: text}
+            data: {text: fresh.text}
           }, function(response) {
-            var baked = story(text)
-            stories.fresh = "your story here"
+            var id = tellStory(fresh.text)
+            var baked = storyTemplate(functionCall(tellStory.name), fresh.text, id)
+            fresh.text = "your story here"
             document.querySelector(".save-button").style.display = "none"
-            stories.saveButton = false
-            document.querySelector(".fresh-story span").innerText = newStoryButton
+            fresh.saveButton = false
+            document.querySelector(".fresh-story span").innerText = "Tell a new story"
             addHtml.inside(".stories", baked.html())
           })
 
         }
       )
 
-      var getValue = bridge.defineFunction([stories], function(stories) {
-          return stories.fresh
+      var getValue = bridge.defineFunction([fresh], function(fresh) {
+          return fresh.text
         }
       )
 
-      var setValue = bridge.defineFunction([stories], function(stories, text, makeRequest) {
-        if (!stories.saveButton) {
+      var setValue = bridge.defineFunction([fresh], function(fresh, text, makeRequest) {
+        if (!fresh.saveButton) {
           document.querySelector(".save-button").style.display = "inline-block"
-          stories.saveButton = true
+          fresh.saveButton = true
         }
-        stories.fresh = text
+        fresh.text = text
       })
 
       bridgeModule(library, "make-it-editable", bridge)
@@ -125,7 +139,7 @@ library.using(
 
       var freshStory = element.template(
         ".fresh-story",
-        story,
+        storyTemplate,
         element.style({
           "border-left": "none"
         }),
@@ -178,7 +192,7 @@ library.using(
         })
       )
 
-      bridge.addToHead(element.stylesheet(story, freshStory, bodyStyle, message).html())
+      bridge.addToHead(element.stylesheet(storyTemplate, freshStory, bodyStyle, message).html())
 
 
       var newStoryButton = "Tell a new story"
@@ -188,9 +202,17 @@ library.using(
 
       var note = message("Stories should be in the present tense, and start with the doer, and then a verb: \"Bobby smiles\"")
 
-      var container = element(".stories", [note, tellStory.all().map(story)])
+      var container = element(".stories", note)
+
+      tellStory.all(function(text, id) {
+
+        var story = storyTemplate(tellStory.defineOn(bridge), text, id)
+
+        container.addChild(story)
+      })
 
       bridge.sendPage([template, container])(request, response)
     })
+
   }
 )
