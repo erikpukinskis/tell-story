@@ -51,53 +51,13 @@ library.define(
 
 
 library.using(
-  ["nrtv-server", "browser-bridge", "web-element", "make-it-editable", "bridge-module", "add-html", "make-request", "function-call", "module-universe", "./tell-story", "story-template"],
-  function(server, BrowserBridge, element, makeItEditable, bridgeModule, addHtml, makeRequest, functionCall, Universe, tellStory, storyTemplate) {
+  ["nrtv-server", "browser-bridge", "web-element", "make-it-editable", "bridge-module", "add-html", "make-request", "function-call", "./tell-story", "story-template"],
+  function(server, BrowserBridge, element, makeItEditable, bridgeModule, addHtml, makeRequest, functionCall, tellStory, storyTemplate) {
 
     server.start(9919)
 
-    var universe = new Universe(
-      "stories",
-      library,
-      ["./tell-story"],
-      function(tellStory) {
-        // begin
-      }
-    )
-
-    if (process.env.AWS_ACCESS_KEY_ID) {
-      universe.persistToS3({
-        key: process.env.AWS_ACCESS_KEY_ID,
-        secret: process.env.AWS_SECRET_ACCESS_KEY,
-        bucket: "ezjs"
-      })
-
-      universe.loadFromS3(function(){
-        console.log("OK! "+tellStory.count()+" stories told")
-      })
-    }
-
-    server.addRoute("post", "/stories", function(request, response) {
-      var text = request.body.text
-      universe.do("tellStory", text)
-      tellStory(text)
-
-      var when = new Date().toString()
-      universe.do("tellStory.itHappened", "Someone tells a story", when)
-      tellStory.itHappened("Someone tells a story", when)
-
-      response.send({success: true})
-    })
-
-    server.addRoute("post", "/stories/:id", function(request, response) {
-      var text = request.body.text
-      var id = request.params.id
-
-      universe.do("tellStory.edit", id, text)
-      tellStory.edit(id, text)
-      response.send({success: true})
-    })
-
+    tellStory.addApiRoutes(server)
+    
     server.addRoute("get", "/", function(request, response) {
       var bridge = new BrowserBridge()
 
@@ -151,8 +111,6 @@ library.using(
         }
         fresh.text = text
       })
-
-      bridgeModule(library, "make-it-editable", bridge)
 
       makeItEditable.prepareBridge(bridge, {useLibrary: true})
 
